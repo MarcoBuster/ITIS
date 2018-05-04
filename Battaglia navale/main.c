@@ -1,6 +1,6 @@
 /*
  *  Implementare il gioco della battaglia navale in C.
- *  Generata una griglia con delle navi di lunghezza minima 2 e massima 4
+ *  Generata una griglia con delle navi di lunghezza minima 1 e massima 4
  *  e date le coordinate del lancio, stabilire se il missile ha fatto
  *  l'acqua, ha fatto fuoco, ha colpito la nave o l'ha affondata completamente.
  *
@@ -16,12 +16,14 @@
 
 const int TABLE_SIZE = 10;
 const int MAX_SHIP_LENGTH = 4;
-const int MIN_SHIP_LENGTH = 2;
+const int MIN_SHIP_LENGTH = 1;
+const int SHIPS_NUMBER = 5;
 
 void popolateTable(int table[TABLE_SIZE][TABLE_SIZE]);
 void printTable(int table[TABLE_SIZE][TABLE_SIZE]);
 int getRandomNumber(int low, int high);
 void generateRandomTable(int table[TABLE_SIZE][TABLE_SIZE]);
+int sendMissle(int table[TABLE_SIZE][TABLE_SIZE], int x, int y);
 
 
 int main() {
@@ -31,6 +33,50 @@ int main() {
     popolateTable(table);
     generateRandomTable(table);
     printTable(table);
+
+    int x, y;
+    int result;
+    int water=0, near=0, hit=0, fired=0, attemps=0;
+    do {
+        printf("Inserisci le coordinate [coordinata X]: ");
+        scanf("%d", &x);
+        printf("Inserisci le coordinate [coordinata Y]: ");
+        scanf("%d", &y);
+
+        result = sendMissle(table, x, y);
+        printf("\t");
+        switch (result) {
+            case -1:
+                printf("[ERRORE: Nave già colpita]");
+                break;
+            case 0:
+                water++;
+                printf("[ACQUA]");
+                break;
+            case 1:
+                near++;
+                printf("[FUOCO]");
+                break;
+            case 2:
+                hit++;
+                printf("[COLPITO]");
+                break;
+            case 3:
+                fired++;
+                printf("[AFFONDATO] - Affondate: %d/%d", fired, SHIPS_NUMBER);
+                break;
+            default:
+                printf("[ERRORE]");
+                break;
+        }
+        printTable(table);
+        attemps++;
+    } while (fired < SHIPS_NUMBER);
+
+    printf("\n\n-- Gioco terminato --");
+    printf("\n[Statistiche]");
+    printf("\nAcqua: %d\nFuoco: %d\nColpito: %d\nAffondato: %d\nMosse totali: %d",
+           water, near, hit, fired, attemps);
     return 0;
 }
 
@@ -46,14 +92,23 @@ void popolateTable(int table[TABLE_SIZE][TABLE_SIZE]) {
 
 void printTable(int table[TABLE_SIZE][TABLE_SIZE]) {
     int i, k;
-    printf("\n\n -- BATTAGLIA NAVALE %dx%d --\n", TABLE_SIZE, TABLE_SIZE);
+    printf("\n");
     for (i=0; i<TABLE_SIZE; i++) {
+        if (i == 0) {
+            printf("\t");
+            for (k=0; k<TABLE_SIZE; k++)
+                printf("%d ", k);
+            printf("\n\t");
+            for (k=0; k<TABLE_SIZE; k++)
+                printf("--");
+            printf("\n");
+        }
+        printf("%d | ", i);
         for (k=0; k<TABLE_SIZE; k++) {
             printf("%d ", table[i][k]);
         }
         printf("\n");
     }
-
 }
 
 int getRandomNumber(int low, int high) {
@@ -99,7 +154,7 @@ void generateRandomTable(int table[TABLE_SIZE][TABLE_SIZE]) {
             if (table[rx][ry] != 0)
                 exit = true;
             else {
-                table[rx][ry] = 1;
+                // table[rx][ry] = success+1;
                 switch (rd) {
                     case 0:
                         rx++;
@@ -117,9 +172,54 @@ void generateRandomTable(int table[TABLE_SIZE][TABLE_SIZE]) {
                 }
             }
         }
+        for (i = 0; i < rl && !exit; i++) {
+            table[rx][ry] = success+1;
+            switch (rd) {
+                case 0:
+                    rx++;
+                    break;
+                case 1:
+                    rx--;
+                    break;
+                case 2:
+                    ry++;
+                    break;
+                case 3:
+                    ry--;
+                    break;
+                default: ;
+            }
+        }
         if (exit)
             failed++;
         else
             success++;
-    } while (success < TABLE_SIZE && failed < TABLE_SIZE*TABLE_SIZE);  // infinite-loop check
+    } while (success < SHIPS_NUMBER && failed < TABLE_SIZE*TABLE_SIZE);  // infinite-loop check
+    if (failed >= TABLE_SIZE*TABLE_SIZE) {
+        printf("Failed.");
+    }
+}
+
+
+int sendMissle(int table[TABLE_SIZE][TABLE_SIZE], int x, int y) {
+    if (table[x][y] < 0)
+        return -1;  // already hit
+
+    else if (table[x][y] > 0) {
+        table[x][y] = -table[x][y];  // hit
+
+        int i, k;
+        for (i=0; i<TABLE_SIZE; i++)
+            for (k=0; k<TABLE_SIZE; k++)
+                if (table[i][k] == abs(table[x][y]))
+                    return 2;  // ship hit
+
+        return 3;  // ship fired
+    }
+
+    else if (table[x+1][y] > 0 || table[x][y+1] > 0 ||
+            table[x-1][y] > 0 || table[x][y-1] > 0)
+        return 1;  // a ship is near
+
+    return 0;  // no ship near
 }
