@@ -33,7 +33,7 @@ int main() {
     }
 
     for (j=0, i=0, k=0, direction=0, step=0, max_step=size-1,
-                 changed=false; j<size*size; j++) {
+         changed=false; j<size*size; j++) {
         printf("\n[i=%d, k=%d; %d/%d]: %d", i, k, j, size*size, matrix[i][k]);
 
         if (direction % 4 == 0)
